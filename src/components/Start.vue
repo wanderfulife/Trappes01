@@ -321,14 +321,16 @@ const selectAnswer = (option, index) => {
       answers.value[`Q3a_COMMUNE`] = "TRAPPES";
       answers.value["CODE_INSEE"] = "78621";
       answers.value["COMMUNE_LIBRE"] = "";
+      answers.value["Q3a_precision"] = "TRAPPES";
     }
   }
   if (currentQuestion.value.id === "Q3b") {
     if (index === 0) {
-      // "Nord de la gare" sélectionné
+      // "Trappes" sélectionné
       answers.value[`Q3b_COMMUNE`] = "TRAPPES";
       answers.value["CODE_INSEE"] = "78621";
       answers.value["COMMUNE_LIBRE"] = "";
+      answers.value["Q3b_precision"] = "TRAPPES";
     }
   }
 
@@ -428,46 +430,33 @@ const handleCommuneSelection = () => {
     const parts = selectedCommune.value.split(" - ");
     const currentQuestionId = currentQuestion.value.id;
 
-    if (currentQuestionId === 'Q6') {
-      // Handle Q6 data saving
-      if (parts.length === 2) {
-        const [commune, codeInsee] = parts;
-        answers.value['Q6_COMMUNE'] = commune;
-        answers.value['Q6_CODE_INSEE'] = codeInsee;
-        answers.value['Q6_COMMUNE_LIBRE'] = ""; // Clear any potential free text
-      } else {
-        answers.value['Q6_COMMUNE'] = ""; // Clear dropdown selection
-        answers.value['Q6_CODE_INSEE'] = ""; // Clear INSEE code
-        answers.value['Q6_COMMUNE_LIBRE'] = selectedCommune.value.trim(); // Set free text
-      }
-       // Also save the raw input to Q6 for backward compatibility or direct reference if needed
-      answers.value['Q6'] = selectedCommune.value.trim();
+    // Always save the raw input to the _precision field itself
+    answers.value[currentQuestionId] = selectedCommune.value.trim();
 
-    } else if (currentQuestionId === 'Q2_precision') {
-       // Handle Q2_precision data saving (existing logic)
-      const isNonPassenger = currentQuestionId.includes("nonvoyageur"); // This check might be redundant if only 'Q2_precision' lands here, but keep for safety
-      const questionPrefix = isNonPassenger ? "Q2_nonvoyageur" : "Q2"; // Should resolve to 'Q2'
+    if (currentQuestionId === 'Q2_precision' || currentQuestionId === 'Q3a_precision' || currentQuestionId === 'Q3b_precision') {
+      // Determine prefix for _COMMUNE field (Q2, Q3a, Q3b)
+      let questionPrefix = "";
+      if (currentQuestionId === 'Q2_precision') questionPrefix = 'Q2';
+      else if (currentQuestionId === 'Q3a_precision') questionPrefix = 'Q3a';
+      else if (currentQuestionId === 'Q3b_precision') questionPrefix = 'Q3b';
 
       if (parts.length === 2) {
-        // Dropdown selection
+        // Dropdown selection with "COMMUNE - INSEE"
         const [commune, codeInsee] = parts;
-        answers.value[`${questionPrefix}_COMMUNE`] = commune;
-        answers.value["CODE_INSEE"] = codeInsee;
-        answers.value["COMMUNE_LIBRE"] = ""; // Clear COMMUNE_LIBRE
+        if (questionPrefix) answers.value[`${questionPrefix}_COMMUNE`] = commune;
+        answers.value["CODE_INSEE"] = codeInsee; // General CODE_INSEE
+        answers.value["COMMUNE_LIBRE"] = "";
       } else {
         // Manual entry or free text
-        answers.value[`${questionPrefix}_COMMUNE`] = ""; // Clear the dropdown commune
-        answers.value["CODE_INSEE"] = ""; // Clear INSEE code
-        answers.value["COMMUNE_LIBRE"] = selectedCommune.value.trim(); // Set COMMUNE_LIBRE
+        if (questionPrefix) answers.value[`${questionPrefix}_COMMUNE`] = "";
+        answers.value["CODE_INSEE"] = ""; // Clear general CODE_INSEE for free text
+        answers.value["COMMUNE_LIBRE"] = selectedCommune.value.trim();
       }
-        // Save the raw input to Q2_precision as well
-       answers.value['Q2_precision'] = selectedCommune.value.trim();
     } else {
-        // Fallback or handle other potential CommuneSelector uses if any
-        console.warn("CommuneSelector used on unexpected question:", currentQuestionId);
-         answers.value[currentQuestionId] = selectedCommune.value.trim(); // Generic save
+        // Fallback for any other potential CommuneSelector uses if any
+        console.warn("CommuneSelector used on an unexpected question not explicitly handled for full data parsing:", currentQuestionId);
+        // Only the raw value was saved at the top of the function for this case.
     }
-
 
     nextQuestion();
   }

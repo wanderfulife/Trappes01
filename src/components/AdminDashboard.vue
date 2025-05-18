@@ -40,23 +40,8 @@
               </li>
             </ul>
           </div>
-          <div class="dashboard-card">
-            <h3>Enquêtes par Type</h3>
-            <ul>
-              <li v-for="(count, type) in surveysByType" :key="type">
-                <span>{{ type }}</span>
-                <span class="count">{{ count }}</span>
-              </li>
-            </ul>
-          </div>
-          <div class="dashboard-card">
-            <h3>Enquêtes d'Autres Dates</h3>
-            <p class="big-number" style="color: #f56565;">{{ surveysFromOtherDates }}</p>
-          </div>
-          <div class="dashboard-card">
-            <h3>Aujourd'hui (Heure Manquante)</h3>
-            <p class="big-number" style="color: #ecc94b;">{{ todaysSurveysMissingTime }}</p>
-          </div>
+       
+         
         </div>
         <button @click="downloadData" class="btn-download">
           Télécharger les Données
@@ -84,40 +69,6 @@ const todaysSurveysMissingTime = ref(0);
 const surveyCollectionRef = collection(db, "Trappes");
 
 // Stations list
-const stationsList = [
-  "Amboise",
-  "Ancenis",
-  "Angers-Saint-Laud",
-  "Batz-sur-Mer",
-  "Baule",
-  "Blois-Chambord",
-  "Chaingy-Fourneaux-Plage",
-  "Chouzy",
-  "La Baule-Escoublac",
-  "La Baule-les-Pins",
-  "La Chapelle-Saint-Mesmin",
-  "La Chaussée-Saint-Victor",
-  "Le Croisic",
-  "Le Pouliguen",
-  "Les Aubrais",
-  "Limeray",
-  "Menars",
-  "Mer",
-  "Meung-sur-Loire",
-  "Montlouis-sur-Loire",
-  "Nantes",
-  "Noizay",
-  "Onzain-Chaumont-sur-Loire",
-  "Orléans",
-  "Pornichet",
-  "Saint-Ay",
-  "Saint-Nazaire",
-  "Saint-Pierre-des-Corps",
-  "Saumur",
-  "Suèvres",
-  "Tours",
-  "Veuves-Monteaux",
-];
 
 const signIn = () => {
   if (password.value === "Yamina123") {
@@ -236,8 +187,11 @@ const downloadData = async () => {
       "Q2b", // Nord/Sud de la gare (pour Q1 sortant)
       "Q3a", // Commune origine (Trappes/Autre)
       "Q3a_precision", // Précision commune origine
+      // CODE_INSEE related to Q3a/Q3b/Q2_precision could go here or near COMMUNE_LIBRE
       "Q3b", // Commune destination (Trappes/Autre)
       "Q3b_precision", // Précision commune destination
+      "CODE_INSEE", // Added CODE_INSEE here
+      "COMMUNE_LIBRE", // This is often associated with commune questions
       "Q4", // Quartier Trappes
       "Q4_precision", // Précision quartier
       "Q5", // Motif déplacement train
@@ -255,21 +209,16 @@ const downloadData = async () => {
 
     const data = querySnapshot.docs.map((doc) => {
       const docData = doc.data();
-      // Pre-process data: Set TYPE_QUESTIONNAIRE - REMOVED BLOCK
-      // let type;
-      // if (docData.Q1 === 1) {
-      //   type = "Voyageur";
-      // } else if (docData.Q1 === 2) {
-      //   type = "Non-voyageur";
-      // } else {
-      //   type = "Non-voyageur";
-      // }
-      // // Add TYPE_QUESTIONNAIRE to docData for easier mapping
-      // docData.TYPE_QUESTIONNAIRE = type;
 
-      // Map data based on header order, using nullish coalescing for defaults
       return headerOrder.reduce((acc, key) => {
-        acc[key] = docData[key] ?? "";
+        let valueToStore = docData[key] ?? "";
+        // Check if the key is one of the commune precision fields
+        if (key === "Q3a_precision" || key === "Q3b_precision" || key === "Q2_precision") { // Added Q2_precision just in case
+          if (typeof valueToStore === 'string' && valueToStore.includes(' - ')) {
+            valueToStore = valueToStore.split(' - ')[0]; // Take only the part before ' - '
+          }
+        }
+        acc[key] = valueToStore;
         return acc;
       }, {});
     });
